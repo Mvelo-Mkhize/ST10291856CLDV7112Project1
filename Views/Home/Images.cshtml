@@ -1,0 +1,18 @@
+﻿@model List<string>
+<h2>Uploaded Images</h2>
+@if (!Model.Any())
+{
+    <p>No images uploaded.</p>
+}
+else
+{
+    <ul>
+        @foreach (var blob in Model)
+        {
+            <li>
+                @blob
+                <a asp-action="DownloadImage" asp-route-blobName="@blob">Download</a>
+            </li>
+        }
+    </ul>
+}

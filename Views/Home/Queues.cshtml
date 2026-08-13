@@ -1,0 +1,40 @@
+﻿@model List<QueueMessageViewModel>
+@inject BlobStorageService BlobService
+
+<h2>Order Queue (Peek)</h2>
+
+@if (!Model.Any())
+{
+    <p>No messages in queue.</p>
+}
+else
+{
+    <table>
+        <tr>
+            <th>Image</th>
+            <th>SKU</th>
+            <th>Product Name</th>
+            <th>Quantity</th>
+            <th>Order ID</th>
+        </tr>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @if (!string.IsNullOrEmpty(item.ImageBlobName))
+                    {
+                        <img src="@BlobService.GetBlobUrl(item.ImageBlobName)" alt="Product Image" style="width:50px; height:50px; object-fit:cover;" />
+                    }
+                    else
+                    {
+                        <img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' fill='%23dddddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='%23999999'%3E📦%3C/text%3E%3C/svg%3E" alt="No Image" style="width:50px; height:50px;" />
+                    }
+                </td>
+                <td>@item.SKU</td>
+                <td>@item.ProductName</td>
+                <td>@item.Quantity</td>
+                <td>@item.OrderId</td>
+            </tr>
+        }
+    </table>
+}
