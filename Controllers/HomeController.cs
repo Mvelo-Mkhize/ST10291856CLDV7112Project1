@@ -11,6 +11,7 @@ namespace ST10291856CLDV7112Project1.Controllers
         private readonly BlobStorageService _blobService;
         private readonly QueueStorageService _queueService;
         private readonly FileShareService _fileShareService;
+        private readonly FunctionService _functions;
         private readonly ILogger<HomeController> _logger;
 
         public HomeController(
@@ -18,20 +19,34 @@ namespace ST10291856CLDV7112Project1.Controllers
             BlobStorageService blobService,
             QueueStorageService queueService,
             FileShareService fileShareService,
+            FunctionService functions,
             ILogger<HomeController> logger)
         {
             _tableService = tableService;
             _blobService = blobService;
             _queueService = queueService;
             _fileShareService = fileShareService;
+            _functions = functions;
             _logger = logger;
         }
 
         private async Task LogAsync(string message)
         {
             _logger.LogInformation(message);
-            try { await _fileShareService.WriteLogAsync(null, message); }
-            catch (Exception ex) { _logger.LogWarning(ex, "Could not write log to Azure Files."); }
+            try
+            {
+                var ok = await _functions.WriteLogAsync(null, message);
+                if (!ok) throw new Exception("Function returned non-success.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Function log failed — falling back to direct write.");
+                try { await _fileShareService.WriteLogAsync(null, message); }
+                catch (Exception inner)
+                {
+                    _logger.LogWarning(inner, "Direct log write also failed.");
+                }
+            }
         }
 
         public async Task<IActionResult> Index()
@@ -49,15 +64,19 @@ namespace ST10291856CLDV7112Project1.Controllers
         public async Task<IActionResult> AddCustomer(CustomerProfile customer, IFormFile? customerImage)
         {
             if (!ModelState.IsValid)
+            {
                 return View("Index", new DashboardViewModel
                 {
                     Customer = customer,
                     Products = await _tableService.GetAllProductsAsync()
                 });
+            }
 
             try
             {
-                if (customerImage != null && customerImage.Length > 0)
+                string? blobName = null;
+
+                if (customerImage is { Length: > 0 })
                 {
                     if (!_blobService.IsValidImage(customerImage, out var err))
                     {
@@ -69,20 +88,54 @@ namespace ST10291856CLDV7112Project1.Controllers
                         });
                     }
 
-                    string blobName = $"customer-{Guid.NewGuid()}-{Path.GetFileName(customerImage.FileName)}";
                     using var stream = customerImage.OpenReadStream();
-                    await _blobService.UploadBlobAsync(blobName, stream, customerImage.ContentType);
-                    customer.ImageBlobName = blobName;
+                    blobName = await _functions.UploadImageAsync(
+                        stream,
+                        Path.GetFileName(customerImage.FileName),
+                        customerImage.ContentType);
+
+                    if (blobName is null)
+                    {
+                        ModelState.AddModelError("customerImage",
+                            "Image upload via Azure Function failed.");
+                        return View("Index", new DashboardViewModel
+                        {
+                            Customer = customer,
+                            Products = await _tableService.GetAllProductsAsync()
+                        });
+                    }
                 }
 
-                await _tableService.AddCustomerAsync(customer);
-                await LogAsync($"Customer added: {customer.Email}");
-                TempData["SuccessMessage"] = $"Customer '{customer.Email}' added successfully.";
+                var dto = new
+                {
+                    customer.FirstName,
+                    customer.LastName,
+                    customer.Email,
+                    customer.Phone,
+                    ImageBlobName = blobName ?? string.Empty
+                };
+
+                bool ok = await _functions.StoreCustomerAsync(dto);
+                if (!ok)
+                {
+                    ModelState.AddModelError("Customer.Email",
+                        "A customer with that email already exists, or the function rejected the request.");
+                    return View("Index", new DashboardViewModel
+                    {
+                        Customer = customer,
+                        Products = await _tableService.GetAllProductsAsync()
+                    });
+                }
+
+                await LogAsync($"Customer added via Function: {customer.Email}");
+                TempData["SuccessMessage"] =
+                    $"Customer '{customer.Email}' added successfully.";
                 return RedirectToAction(nameof(Customers));
             }
-            catch (Azure.RequestFailedException ex) when (ex.Status == 409)
+            catch (Exception ex)
             {
-                ModelState.AddModelError("Customer.Email", "A customer with that email already exists.");
+                _logger.LogError(ex, "AddCustomer failed.");
+                ModelState.AddModelError("", "An unexpected error occurred: " + ex.Message);
                 return View("Index", new DashboardViewModel
                 {
                     Customer = customer,
@@ -98,15 +151,17 @@ namespace ST10291856CLDV7112Project1.Controllers
         public async Task<IActionResult> AddProduct(Product product, IFormFile? productImage)
         {
             if (!ModelState.IsValid)
+            {
                 return View("Index", new DashboardViewModel
                 {
                     Product = product,
                     Products = await _tableService.GetAllProductsAsync()
                 });
+            }
 
             try
             {
-                if (productImage != null && productImage.Length > 0)
+                if (productImage is { Length: > 0 })
                 {
                     if (!_blobService.IsValidImage(productImage, out var err))
                     {
@@ -118,20 +173,36 @@ namespace ST10291856CLDV7112Project1.Controllers
                         });
                     }
 
-                    string blobName = $"product-{Guid.NewGuid()}-{Path.GetFileName(productImage.FileName)}";
                     using var stream = productImage.OpenReadStream();
-                    await _blobService.UploadBlobAsync(blobName, stream, productImage.ContentType);
+                    var blobName = await _functions.UploadImageAsync(
+                        stream,
+                        Path.GetFileName(productImage.FileName),
+                        productImage.ContentType);
+
+                    if (blobName is null)
+                    {
+                        ModelState.AddModelError("productImage",
+                            "Image upload via Azure Function failed.");
+                        return View("Index", new DashboardViewModel
+                        {
+                            Product = product,
+                            Products = await _tableService.GetAllProductsAsync()
+                        });
+                    }
+
                     product.ImageBlobName = blobName;
                 }
 
                 await _tableService.AddProductAsync(product);
                 await LogAsync($"Product added: {product.RowKey} - {product.Name}");
-                TempData["SuccessMessage"] = $"Product '{product.Name}' added successfully.";
+                TempData["SuccessMessage"] =
+                    $"Product '{product.Name}' added successfully.";
                 return RedirectToAction(nameof(Products));
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 409)
             {
-                ModelState.AddModelError("Product.RowKey", "A product with that SKU already exists.");
+                ModelState.AddModelError("Product.RowKey",
+                    "A product with that SKU already exists.");
                 return View("Index", new DashboardViewModel
                 {
                     Product = product,
@@ -146,7 +217,7 @@ namespace ST10291856CLDV7112Project1.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadImage(IFormFile imageFile)
         {
-            if (imageFile == null || imageFile.Length == 0)
+            if (imageFile is null || imageFile.Length == 0)
             {
                 TempData["ErrorMessage"] = "Please choose an image.";
                 return RedirectToAction(nameof(Index));
@@ -158,14 +229,30 @@ namespace ST10291856CLDV7112Project1.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            string blobName = $"{Guid.NewGuid()}_{Path.GetFileName(imageFile.FileName)}";
-            using (var stream = imageFile.OpenReadStream())
-                await _blobService.UploadBlobAsync(blobName, stream, imageFile.ContentType);
+            try
+            {
+                using var stream = imageFile.OpenReadStream();
+                var blobName = await _functions.UploadImageAsync(
+                    stream,
+                    Path.GetFileName(imageFile.FileName),
+                    imageFile.ContentType);
 
-            await _queueService.SendMessageAsync($"Image uploaded: '{blobName}'");
-            await LogAsync($"Image uploaded: {blobName}");
-            TempData["SuccessMessage"] = $"Image '{blobName}' uploaded.";
-            return RedirectToAction(nameof(Images));
+                if (blobName is null)
+                {
+                    TempData["ErrorMessage"] = "Upload via Azure Function failed.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                await LogAsync($"Image uploaded via Function: {blobName}");
+                TempData["SuccessMessage"] = $"Image '{blobName}' uploaded.";
+                return RedirectToAction(nameof(Images));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UploadImage failed.");
+                TempData["ErrorMessage"] = "Upload failed: " + ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         public async Task<IActionResult> Images()
@@ -182,7 +269,8 @@ namespace ST10291856CLDV7112Project1.Controllers
         {
             if (string.IsNullOrWhiteSpace(sku) || quantity <= 0)
             {
-                TempData["ErrorMessage"] = "Please provide a valid SKU and quantity greater than 0.";
+                TempData["ErrorMessage"] =
+                    "Please provide a valid SKU and quantity greater than 0.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -195,7 +283,8 @@ namespace ST10291856CLDV7112Project1.Controllers
 
             if (quantity > product.StockQuantity)
             {
-                TempData["ErrorMessage"] = $"Only {product.StockQuantity} in stock for '{product.Name}'.";
+                TempData["ErrorMessage"] =
+                    $"Only {product.StockQuantity} in stock for '{product.Name}'.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -209,9 +298,13 @@ namespace ST10291856CLDV7112Project1.Controllers
                 CreatedUtc = DateTime.UtcNow
             };
 
-            await _queueService.SendMessageAsync(JsonSerializer.Serialize(orderMessage));
+            await _queueService.SendMessageAsync(
+                JsonSerializer.Serialize(orderMessage));
+
             await LogAsync($"Order queued: {product.RowKey} x{quantity}");
-            TempData["SuccessMessage"] = $"Order placed for '{product.Name}' (Qty: {quantity}).";
+            TempData["SuccessMessage"] =
+                $"Order placed for '{product.Name}' (Qty: {quantity}). " +
+                "The OrderQueue Function will process it shortly.";
             return RedirectToAction(nameof(Queues));
         }
 
@@ -230,7 +323,10 @@ namespace ST10291856CLDV7112Project1.Controllers
                         obj.RawMessage = raw;
                         items.Add(obj);
                     }
-                    else items.Add(new QueueMessageViewModel { RawMessage = raw });
+                    else
+                    {
+                        items.Add(new QueueMessageViewModel { RawMessage = raw });
+                    }
                 }
                 catch
                 {
@@ -254,14 +350,15 @@ namespace ST10291856CLDV7112Project1.Controllers
 
             try
             {
-                await LogAsync($"Order processed: {msg.Value.Body}");
+                await LogAsync($"Order processed (manual): {msg.Value.Body}");
                 await _queueService.DeleteMessageAsync(msg.Value.MessageId, msg.Value.PopReceipt);
                 TempData["SuccessMessage"] = "Order processed and removed from queue.";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Order processing failed; message will retry.");
-                TempData["ErrorMessage"] = "Order processing failed — will retry after visibility timeout.";
+                _logger.LogError(ex, "Manual order processing failed.");
+                TempData["ErrorMessage"] =
+                    "Order processing failed — the message will retry after the visibility timeout.";
             }
             return RedirectToAction(nameof(Queues));
         }
@@ -284,8 +381,26 @@ namespace ST10291856CLDV7112Project1.Controllers
                 return RedirectToAction(nameof(Logs));
             }
 
-            await _fileShareService.WriteLogAsync(logFileName, logMessage);
-            TempData["SuccessMessage"] = "Log written.";
+            try
+            {
+                var ok = await _functions.WriteLogAsync(logFileName, logMessage);
+                if (!ok)
+                {
+                    await _fileShareService.WriteLogAsync(logFileName, logMessage);
+                    TempData["SuccessMessage"] =
+                        "Log written directly (function unavailable).";
+                }
+                else
+                {
+                    TempData["SuccessMessage"] = "Log written via Azure Function.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "WriteLog failed.");
+                TempData["ErrorMessage"] = "Log write failed: " + ex.Message;
+            }
+
             return RedirectToAction(nameof(Logs));
         }
 

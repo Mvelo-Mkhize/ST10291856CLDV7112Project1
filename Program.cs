@@ -9,6 +9,7 @@ builder.Services.AddSingleton<BlobStorageService>();
 builder.Services.AddSingleton<QueueStorageService>();
 builder.Services.AddSingleton<FileShareService>();
 builder.Services.AddSingleton<StorageAccountService>();
+builder.Services.AddHttpClient<FunctionService>();
 
 var app = builder.Build();
 
