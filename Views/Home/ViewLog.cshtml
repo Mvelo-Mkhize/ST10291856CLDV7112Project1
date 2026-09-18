@@ -1,6 +1,14 @@
 ﻿@{
+    ViewData["Title"] = "View Log";
     var fileName = ViewBag.FileName as string;
-    var content = ViewBag.Content as string;
+    var content  = ViewBag.Content as string;
 }
+
 <h2>@fileName</h2>
-<pre>@content</pre>
+
+<div class="mb-2 d-flex gap-2">
+    <a asp-action="Logs" class="btn btn-outline-secondary">Back to Logs</a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Home</a>
+</div>
+
+<pre style="white-space: pre-wrap; background:#f6f8fa; padding:1rem; border-radius:.4rem;">@content</pre>

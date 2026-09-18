@@ -1,7 +1,35 @@
 ﻿@model List<QueueMessageViewModel>
 @inject BlobStorageService BlobService
+@{
+    ViewData["Title"] = "Order Queue";
+    int count = ViewBag.QueueCount ?? 0;
+}
 
-<h2>Order Queue (Peek)</h2>
+<h2>Order Queue <span class="badge bg-info text-dark">@count message(s)</span></h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="mb-3 d-flex gap-2 flex-wrap">
+    <form asp-action="ProcessNextOrder" method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-success">Process Next Order</button>
+    </form>
+    <form asp-action="ClearQueue" method="post"
+          onsubmit="return confirm('Clear all queue messages? This cannot be undone.');">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-danger">Clear Queue</button>
+    </form>
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
+    <a asp-action="Products" class="btn btn-outline-secondary">Products</a>
+    <a asp-action="Logs" class="btn btn-outline-secondary">Logs</a>
+</div>
 
 @if (!Model.Any())
 {
@@ -9,32 +37,27 @@
 }
 else
 {
-    <table>
-        <tr>
-            <th>Image</th>
-            <th>SKU</th>
-            <th>Product Name</th>
-            <th>Quantity</th>
-            <th>Order ID</th>
-        </tr>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>
-                    @if (!string.IsNullOrEmpty(item.ImageBlobName))
-                    {
-                        <img src="@BlobService.GetBlobUrl(item.ImageBlobName)" alt="Product Image" style="width:50px; height:50px; object-fit:cover;" />
-                    }
-                    else
-                    {
-                        <img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='50' height='50' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' fill='%23dddddd'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='20' fill='%23999999'%3E📦%3C/text%3E%3C/svg%3E" alt="No Image" style="width:50px; height:50px;" />
-                    }
-                </td>
-                <td>@item.SKU</td>
-                <td>@item.ProductName</td>
-                <td>@item.Quantity</td>
-                <td>@item.OrderId</td>
-            </tr>
-        }
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr><th>Image</th><th>SKU</th><th>Product</th><th>Qty</th><th>Order ID</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.ImageBlobName))
+                        {
+                            <img src="@BlobService.GetBlobUrl(item.ImageBlobName)"
+                                 style="width:50px;height:50px;object-fit:cover;" />
+                        }
+                    </td>
+                    <td>@item.SKU</td>
+                    <td>@item.ProductName</td>
+                    <td>@item.Quantity</td>
+                    <td class="small">@item.OrderId</td>
+                </tr>
+            }
+        </tbody>
     </table>
 }

@@ -1,12 +1,29 @@
 ﻿@{
+    ViewData["Title"] = "Logs";
     var logFiles = ViewBag.LogFiles as List<string> ?? new List<string>();
 }
+
 <h2>Log Files</h2>
-<ul>
+
+<div class="mb-2 d-flex gap-2">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
+    <a asp-action="Products" class="btn btn-outline-secondary">Products</a>
+    <a asp-action="Customers" class="btn btn-outline-secondary">Customers</a>
+    <a asp-action="Queues" class="btn btn-outline-secondary">Queue</a>
+</div>
+
+@if (!logFiles.Any())
+{
+    <p>No log files yet — logs are created automatically when you use the app.</p>
+}
+else
+{
+    <ul>
     @foreach (var file in logFiles)
     {
         <li>
             <a asp-action="ViewLog" asp-route-fileName="@file">@file</a>
         </li>
     }
-</ul>
+    </ul>
+}

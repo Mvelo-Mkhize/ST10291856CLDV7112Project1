@@ -11,48 +11,50 @@ namespace ST10291856CLDV7112Project1.Services
 
         public TableStorageService(IConfiguration configuration)
         {
-            string connStr = configuration["AzureStorage:ConnectionString"]!;
+            string connStr = configuration["AzureStorage:ConnectionString"]
+                ?? throw new InvalidOperationException("AzureStorage:ConnectionString is not configured.");
+
             _customerTable = new TableClient(connStr, StorageAccountService.TableCustomer);
             _productTable = new TableClient(connStr, StorageAccountService.TableProduct);
         }
 
-        public async Task AddCustomer(CustomerProfile customer)
+        public async Task AddCustomerAsync(CustomerProfile customer)
         {
             customer.PartitionKey = "Customer";
-            customer.RowKey = customer.Email;
-            await _customerTable.AddEntityAsync(customer);
+            customer.RowKey = customer.Email;          
+            await _customerTable.AddEntityAsync(customer);     
         }
 
-        public async Task<List<CustomerProfile>> GetAllCustomers()
+        public async Task<List<CustomerProfile>> GetAllCustomersAsync()
         {
-            var customers = new List<CustomerProfile>();
+            var list = new List<CustomerProfile>();
             await foreach (var entity in _customerTable.QueryAsync<CustomerProfile>())
-                customers.Add(entity);
-            return customers;
+                list.Add(entity);
+            return list.OrderBy(c => c.LastName).ThenBy(c => c.FirstName).ToList();
         }
 
-        public async Task AddProduct(Product product)
+        public async Task AddProductAsync(Product product)
         {
             product.PartitionKey = "Product";
-            await _productTable.AddEntityAsync(product);
+            await _productTable.AddEntityAsync(product);      
         }
 
-        public async Task<List<Product>> GetAllProducts()
+        public async Task<List<Product>> GetAllProductsAsync()
         {
-            var products = new List<Product>();
+            var list = new List<Product>();
             await foreach (var entity in _productTable.QueryAsync<Product>())
-                products.Add(entity);
-            return products;
+                list.Add(entity);
+            return list.OrderBy(p => p.Name).ToList();
         }
 
-        public async Task<Product?> GetProductBySku(string sku)
+        public async Task<Product?> GetProductBySkuAsync(string sku)
         {
             try
             {
                 var response = await _productTable.GetEntityAsync<Product>("Product", sku);
                 return response.Value;
             }
-            catch (Azure.RequestFailedException ex) when (ex.Status == 404)
+            catch (RequestFailedException ex) when (ex.Status == 404)
             {
                 return null;
             }

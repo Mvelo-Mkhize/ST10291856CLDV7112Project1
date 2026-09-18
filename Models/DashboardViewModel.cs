@@ -2,7 +2,8 @@
 {
     public class DashboardViewModel
     {
-        public CustomerProfile Customer { get; set; } = new CustomerProfile();
-        public Product Product { get; set; } = new Product();
+        public CustomerProfile Customer { get; set; } = new();
+        public Product Product { get; set; } = new();
+        public List<Product> Products { get; set; } = new();
     }
 }

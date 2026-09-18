@@ -1,5 +1,4 @@
 ﻿using Azure.Storage.Queues;
-using Azure.Storage.Queues.Models;
 
 namespace ST10291856CLDV7112Project1.Services
 {
@@ -9,30 +8,43 @@ namespace ST10291856CLDV7112Project1.Services
 
         public QueueStorageService(IConfiguration configuration)
         {
-            string connStr = configuration["AzureStorage:ConnectionString"]!;
+            string connStr = configuration["AzureStorage:ConnectionString"]
+                ?? throw new InvalidOperationException("AzureStorage:ConnectionString is not configured.");
             _queueClient = new QueueClient(connStr, StorageAccountService.QueueName);
         }
 
         public async Task SendMessageAsync(string messageText)
-        {
-            await _queueClient.SendMessageAsync(messageText);
-        }
+            => await _queueClient.SendMessageAsync(messageText);
 
         public async Task<List<string>> PeekMessagesAsync(int maxMessages = 32)
         {
-            PeekedMessage[] peeked = await _queueClient.PeekMessagesAsync(maxMessages);
-            var messages = new List<string>();
-            foreach (var msg in peeked)
-                messages.Add(msg.MessageText);
-            return messages;
+            var peeked = await _queueClient.PeekMessagesAsync(maxMessages);
+            return peeked.Value.Select(m => m.MessageText).ToList();
         }
 
-        public async Task<string?> DequeueMessageAsync()
+        public async Task<int> GetApproximateCountAsync()
         {
-            QueueMessage[] messages = await _queueClient.ReceiveMessagesAsync(1);
-            if (messages.Length == 0) return null;
-            await _queueClient.DeleteMessageAsync(messages[0].MessageId, messages[0].PopReceipt);
-            return messages[0].MessageText;
+            var props = await _queueClient.GetPropertiesAsync();
+            return props.Value.ApproximateMessagesCount;
         }
+
+        public async Task<(string MessageId, string PopReceipt, string Body)?> DequeueMessageAsync(
+            TimeSpan? visibilityTimeout = null)
+        {
+            var messages = await _queueClient.ReceiveMessagesAsync(
+                maxMessages: 1,
+                visibilityTimeout: visibilityTimeout ?? TimeSpan.FromMinutes(2));
+
+            if (messages.Value.Length == 0) return null;
+
+            var m = messages.Value[0];
+            return (m.MessageId, m.PopReceipt, m.MessageText);
+        }
+
+        public async Task DeleteMessageAsync(string messageId, string popReceipt)
+            => await _queueClient.DeleteMessageAsync(messageId, popReceipt);
+
+        public async Task ClearAsync()
+            => await _queueClient.ClearMessagesAsync();
     }
 }
