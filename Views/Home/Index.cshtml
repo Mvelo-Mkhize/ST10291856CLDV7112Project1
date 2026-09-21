@@ -6,14 +6,14 @@
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show">
         @TempData["SuccessMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show">
         @TempData["ErrorMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
@@ -30,15 +30,7 @@ else
 {
     <table class="table table-striped align-middle">
         <thead>
-            <tr>
-                <th>Image</th>
-                <th>SKU</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Order</th>
-            </tr>
+            <tr><th>Image</th><th>SKU</th><th>Name</th><th>Description</th><th>Price</th><th>Stock</th><th>Order</th></tr>
         </thead>
         <tbody>
             @foreach (var p in Model.Products)
@@ -47,11 +39,12 @@ else
                     <td>
                         @if (!string.IsNullOrEmpty(p.ImageBlobName))
                         {
-                            <img src="@BlobService.GetBlobUrl(p.ImageBlobName)"
-                                 alt="@p.Name" style="width:60px;height:60px;object-fit:cover;" />
+                            <img src="@BlobService.GetBlobUrl(p.ImageBlobName)" alt="@p.Name"
+                                 style="width:60px;height:60px;object-fit:cover;" />
                         }
                         else
                         {
+
                             <span class="text-muted small">No image</span>
                         }
                     </td>
@@ -64,9 +57,8 @@ else
                         <form asp-action="ProcessOrder" method="post" class="d-flex gap-1">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="sku" value="@p.RowKey" />
-                            <input type="number" name="quantity" value="1" min="1"
-                                   max="@p.StockQuantity" class="form-control form-control-sm"
-                                   style="width:70px;" />
+                            <input type="number" name="quantity" value="1" min="1" max="@p.StockQuantity"
+                                   class="form-control form-control-sm" style="width:70px;" />
                             <button type="submit" class="btn btn-sm btn-primary">Order</button>
                         </form>
                     </td>
@@ -158,9 +150,7 @@ else
             <h4>Upload Image (Blob)</h4>
             <form asp-action="UploadImage" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
-                <div class="mb-2">
-                    <input type="file" name="imageFile" accept="image/*" class="form-control" required />
-                </div>
+                <div class="mb-2"><input type="file" name="imageFile" accept="image/*" class="form-control" required /></div>
                 <button type="submit" class="btn btn-primary">Upload</button>
                 <a asp-action="Images" class="btn btn-outline-secondary">View Images</a>
             </form>
@@ -170,52 +160,26 @@ else
     <div class="col-md-6">
         <div class="card p-3">
             <h4>Order Processing Queue</h4>
-            <p class="text-muted small">
-                Use the <strong>Order</strong> button in the product table above,
-                or place a manual order here:
-            </p>
             <form asp-action="ProcessOrder" method="post" class="row g-2">
                 @Html.AntiForgeryToken()
-                <div class="col-5">
-                    <input name="sku" class="form-control" placeholder="SKU" required />
-                </div>
-                <div class="col-4">
-                    <input name="quantity" type="number" min="1" value="1" class="form-control" required />
-                </div>
-                <div class="col-3">
-                    <button class="btn btn-primary w-100" type="submit">Place</button>
-                </div>
+                <div class="col-5"><input name="sku" class="form-control" placeholder="SKU" required /></div>
+                <div class="col-4"><input name="quantity" type="number" min="1" value="1" class="form-control" required /></div>
+                <div class="col-3"><button class="btn btn-primary w-100" type="submit">Place</button></div>
             </form>
-            <div class="mt-2">
-                <a asp-action="Queues" class="btn btn-outline-secondary">View Queue</a>
-            </div>
+            <div class="mt-2"><a asp-action="Queues" class="btn btn-outline-secondary">View Queue</a></div>
         </div>
     </div>
 
     <div class="col-12">
         <div class="card p-3">
             <h4>Log Files (Azure Files)</h4>
-            <p class="text-muted small">
-                Logs are written <strong>automatically</strong> on every action (customer,
-                product, order, upload, queue). You can also add a manual entry below.
-            </p>
             <form asp-action="WriteLog" method="post" class="row g-2">
                 @Html.AntiForgeryToken()
-                <div class="col-md-4">
-                    <input name="logFileName" class="form-control"
-                           placeholder="log-YYYY-MM-DD.log (optional)" />
-                </div>
-                <div class="col-md-6">
-                    <input name="logMessage" class="form-control"
-                           placeholder="Log message" required />
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100" type="submit">Write</button>
-                </div>
+                <div class="col-md-4"><input name="logFileName" class="form-control" placeholder="log-YYYY-MM-DD.log (optional)" /></div>
+                <div class="col-md-6"><input name="logMessage" class="form-control" placeholder="Log message" required /></div>
+                <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Write</button></div>
             </form>
-            <div class="mt-2">
-                <a asp-action="Logs" class="btn btn-outline-secondary">View Logs</a>
-            </div>
+            <div class="mt-2"><a asp-action="Logs" class="btn btn-outline-secondary">View Logs</a></div>
         </div>
     </div>
 </div>

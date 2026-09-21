@@ -4,11 +4,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddSingleton<StorageAccountService>();
 builder.Services.AddSingleton<TableStorageService>();
 builder.Services.AddSingleton<BlobStorageService>();
 builder.Services.AddSingleton<QueueStorageService>();
 builder.Services.AddSingleton<FileShareService>();
-builder.Services.AddSingleton<StorageAccountService>();
+
 builder.Services.AddHttpClient<FunctionService>();
 
 var app = builder.Build();
@@ -28,6 +29,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

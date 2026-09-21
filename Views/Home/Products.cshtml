@@ -16,15 +16,7 @@
 
 <table class="table table-striped align-middle">
     <thead>
-        <tr>
-            <th>Image</th>
-            <th>SKU</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Order</th>
-        </tr>
+        <tr><th>Image</th><th>SKU</th><th>Name</th><th>Description</th><th>Price</th><th>Stock</th><th>Order</th></tr>
     </thead>
     <tbody>
         @foreach (var p in Model)
@@ -33,8 +25,7 @@
                 <td>
                     @if (!string.IsNullOrEmpty(p.ImageBlobName))
                     {
-                        <img src="@BlobService.GetBlobUrl(p.ImageBlobName)"
-                             style="width:60px;height:60px;object-fit:cover;" />
+                        <img src="@BlobService.GetBlobUrl(p.ImageBlobName)" style="width:60px;height:60px;object-fit:cover;" />
                     }
                 </td>
                 <td>@p.RowKey</td>
@@ -46,9 +37,8 @@
                     <form asp-action="ProcessOrder" method="post" class="d-flex gap-1">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="sku" value="@p.RowKey" />
-                        <input type="number" name="quantity" value="1" min="1"
-                               max="@p.StockQuantity" class="form-control form-control-sm"
-                               style="width:70px;" />
+                        <input type="number" name="quantity" value="1" min="1" max="@p.StockQuantity"
+                               class="form-control form-control-sm" style="width:70px;" />
                         <button type="submit" class="btn btn-sm btn-primary">Order</button>
                     </form>
                 </td>

@@ -13,7 +13,7 @@ namespace ST10291856CLDV7112Project1.Services
 
         private static readonly string[] AllowedImageTypes =
             { "image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp" };
-        private const long MaxImageBytes = 5 * 1024 * 1024;   
+        private const long MaxImageBytes = 5 * 1024 * 1024;
 
         public BlobStorageService(IConfiguration configuration)
         {
@@ -46,7 +46,10 @@ namespace ST10291856CLDV7112Project1.Services
         public async Task UploadBlobAsync(string blobName, Stream content, string contentType)
         {
             var blobClient = _containerClient.GetBlobClient(blobName);
-            await blobClient.UploadAsync(content, new BlobHttpHeaders { ContentType = contentType });
+            await blobClient.UploadAsync(content, new BlobUploadOptions
+            {
+                HttpHeaders = new BlobHttpHeaders { ContentType = contentType }
+            });
         }
 
         public async Task<Stream> DownloadBlobAsync(string blobName)
@@ -76,7 +79,7 @@ namespace ST10291856CLDV7112Project1.Services
 
             var blobClient = _containerClient.GetBlobClient(blobName);
             if (!blobClient.CanGenerateSasUri)
-                return blobClient.Uri.AbsoluteUri;    
+                return blobClient.Uri.AbsoluteUri;
 
             var sasBuilder = new BlobSasBuilder
             {

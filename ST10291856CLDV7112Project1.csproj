@@ -1,19 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>065c696d-3da7-45cf-9d8f-dea05de2b981</UserSecretsId>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	  <UserSecretsId>2c80c867-039e-4d86-b1d7-0a2a6910acdd</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Azure.Core" Version="1.61.0" />
-    <PackageReference Include="Azure.Data.Tables" Version="12.11.0" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
-    <PackageReference Include="Azure.Storage.Common" Version="12.28.0" />
-    <PackageReference Include="Azure.Storage.Files.Shares" Version="12.27.1" />
-    <PackageReference Include="Azure.Storage.Queues" Version="12.27.1" />
-  </ItemGroup>
-
+	<ItemGroup>
+		<PackageReference Include="Azure.Core" Version="1.62.0" />
+		<PackageReference Include="Azure.Data.Tables" Version="12.12.0" />
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.29.2" />
+		<PackageReference Include="Azure.Storage.Common" Version="12.28.0" />
+		<PackageReference Include="Azure.Storage.Files.Shares" Version="12.27.1" />
+		<PackageReference Include="Azure.Storage.Queues" Version="12.27.1" />
+	</ItemGroup>
 </Project>

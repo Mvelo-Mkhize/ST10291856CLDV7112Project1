@@ -44,16 +44,13 @@ namespace ST10291856CLDV7112Project1.Services
                         using var reader = new StreamReader(download.Value.Content);
                         existing = await reader.ReadToEndAsync();
                     }
-                    catch
-                    {
-                    }
+                    catch { /* empty file */ }
                 }
 
                 string updated = existing +
                     $"{DateTime.UtcNow:O} - {logEntry}{Environment.NewLine}";
-
                 var bytes = Encoding.UTF8.GetBytes(updated);
-                long maxSize = Math.Max(bytes.Length, 1024 * 1024);     
+                long maxSize = Math.Max(bytes.Length, 1024 * 1024);
 
                 if (await fileClient.ExistsAsync())
                     await fileClient.DeleteAsync();
@@ -63,10 +60,7 @@ namespace ST10291856CLDV7112Project1.Services
                 using var stream = new MemoryStream(bytes);
                 await fileClient.UploadAsync(stream);
             }
-            finally
-            {
-                _lock.Release();
-            }
+            finally { _lock.Release(); }
         }
 
         public async Task<string> ReadLogAsync(string fileName)

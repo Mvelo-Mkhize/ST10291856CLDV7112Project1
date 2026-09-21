@@ -42,10 +42,7 @@ namespace ST10291856CLDV7112Project1.Controllers
             {
                 _logger.LogWarning(ex, "Function log failed — falling back to direct write.");
                 try { await _fileShareService.WriteLogAsync(null, message); }
-                catch (Exception inner)
-                {
-                    _logger.LogWarning(inner, "Direct log write also failed.");
-                }
+                catch (Exception inner) { _logger.LogWarning(inner, "Direct log also failed."); }
             }
         }
 
@@ -128,14 +125,13 @@ namespace ST10291856CLDV7112Project1.Controllers
                 }
 
                 await LogAsync($"Customer added via Function: {customer.Email}");
-                TempData["SuccessMessage"] =
-                    $"Customer '{customer.Email}' added successfully.";
+                TempData["SuccessMessage"] = $"Customer '{customer.Email}' added successfully.";
                 return RedirectToAction(nameof(Customers));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "AddCustomer failed.");
-                ModelState.AddModelError("", "An unexpected error occurred: " + ex.Message);
+                ModelState.AddModelError("", "Unexpected error: " + ex.Message);
                 return View("Index", new DashboardViewModel
                 {
                     Customer = customer,
@@ -195,14 +191,12 @@ namespace ST10291856CLDV7112Project1.Controllers
 
                 await _tableService.AddProductAsync(product);
                 await LogAsync($"Product added: {product.RowKey} - {product.Name}");
-                TempData["SuccessMessage"] =
-                    $"Product '{product.Name}' added successfully.";
+                TempData["SuccessMessage"] = $"Product '{product.Name}' added successfully.";
                 return RedirectToAction(nameof(Products));
             }
             catch (Azure.RequestFailedException ex) when (ex.Status == 409)
             {
-                ModelState.AddModelError("Product.RowKey",
-                    "A product with that SKU already exists.");
+                ModelState.AddModelError("Product.RowKey", "A product with that SKU already exists.");
                 return View("Index", new DashboardViewModel
                 {
                     Product = product,
@@ -269,8 +263,7 @@ namespace ST10291856CLDV7112Project1.Controllers
         {
             if (string.IsNullOrWhiteSpace(sku) || quantity <= 0)
             {
-                TempData["ErrorMessage"] =
-                    "Please provide a valid SKU and quantity greater than 0.";
+                TempData["ErrorMessage"] = "Please provide a valid SKU and quantity greater than 0.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -283,8 +276,7 @@ namespace ST10291856CLDV7112Project1.Controllers
 
             if (quantity > product.StockQuantity)
             {
-                TempData["ErrorMessage"] =
-                    $"Only {product.StockQuantity} in stock for '{product.Name}'.";
+                TempData["ErrorMessage"] = $"Only {product.StockQuantity} in stock for '{product.Name}'.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -298,13 +290,9 @@ namespace ST10291856CLDV7112Project1.Controllers
                 CreatedUtc = DateTime.UtcNow
             };
 
-            await _queueService.SendMessageAsync(
-                JsonSerializer.Serialize(orderMessage));
-
+            await _queueService.SendMessageAsync(JsonSerializer.Serialize(orderMessage));
             await LogAsync($"Order queued: {product.RowKey} x{quantity}");
-            TempData["SuccessMessage"] =
-                $"Order placed for '{product.Name}' (Qty: {quantity}). " +
-                "The OrderQueue Function will process it shortly.";
+            TempData["SuccessMessage"] = $"Order placed for '{product.Name}' (Qty: {quantity}).";
             return RedirectToAction(nameof(Queues));
         }
 
@@ -323,10 +311,7 @@ namespace ST10291856CLDV7112Project1.Controllers
                         obj.RawMessage = raw;
                         items.Add(obj);
                     }
-                    else
-                    {
-                        items.Add(new QueueMessageViewModel { RawMessage = raw });
-                    }
+                    else items.Add(new QueueMessageViewModel { RawMessage = raw });
                 }
                 catch
                 {
@@ -357,8 +342,7 @@ namespace ST10291856CLDV7112Project1.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Manual order processing failed.");
-                TempData["ErrorMessage"] =
-                    "Order processing failed — the message will retry after the visibility timeout.";
+                TempData["ErrorMessage"] = "Order processing failed — will retry after visibility timeout.";
             }
             return RedirectToAction(nameof(Queues));
         }
@@ -387,8 +371,7 @@ namespace ST10291856CLDV7112Project1.Controllers
                 if (!ok)
                 {
                     await _fileShareService.WriteLogAsync(logFileName, logMessage);
-                    TempData["SuccessMessage"] =
-                        "Log written directly (function unavailable).";
+                    TempData["SuccessMessage"] = "Log written directly (function unavailable).";
                 }
                 else
                 {

@@ -21,8 +21,8 @@ namespace ST10291856CLDV7112Project1.Services
         public async Task AddCustomerAsync(CustomerProfile customer)
         {
             customer.PartitionKey = "Customer";
-            customer.RowKey = customer.Email;          
-            await _customerTable.AddEntityAsync(customer);     
+            customer.RowKey = customer.Email;
+            await _customerTable.AddEntityAsync(customer);
         }
 
         public async Task<List<CustomerProfile>> GetAllCustomersAsync()
@@ -36,7 +36,7 @@ namespace ST10291856CLDV7112Project1.Services
         public async Task AddProductAsync(Product product)
         {
             product.PartitionKey = "Product";
-            await _productTable.AddEntityAsync(product);      
+            await _productTable.AddEntityAsync(product);
         }
 
         public async Task<List<Product>> GetAllProductsAsync()

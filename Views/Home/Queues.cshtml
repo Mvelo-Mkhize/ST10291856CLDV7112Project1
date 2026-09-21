@@ -19,12 +19,12 @@
 <div class="mb-3 d-flex gap-2 flex-wrap">
     <form asp-action="ProcessNextOrder" method="post">
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-success">Process Next Order</button>
+        <button class="btn btn-success">Process Next Order</button>
     </form>
     <form asp-action="ClearQueue" method="post"
-          onsubmit="return confirm('Clear all queue messages? This cannot be undone.');">
+          onsubmit="return confirm('Clear all queue messages?');">
         @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-danger">Clear Queue</button>
+        <button class="btn btn-danger">Clear Queue</button>
     </form>
     <a asp-action="Index" class="btn btn-outline-secondary">Back to Home</a>
     <a asp-action="Products" class="btn btn-outline-secondary">Products</a>
@@ -38,9 +38,7 @@
 else
 {
     <table class="table table-striped align-middle">
-        <thead>
-            <tr><th>Image</th><th>SKU</th><th>Product</th><th>Qty</th><th>Order ID</th></tr>
-        </thead>
+        <thead><tr><th>Image</th><th>SKU</th><th>Product</th><th>Qty</th><th>Order ID</th></tr></thead>
         <tbody>
             @foreach (var item in Model)
             {

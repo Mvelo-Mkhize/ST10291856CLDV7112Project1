@@ -13,7 +13,7 @@ namespace ST10291856CLDV7112Project1.Services
         {
             _http = http;
             _baseUrl = config["AzureFunctions:BaseUrl"]
-                ?? throw new InvalidOperationException("AzureFunctions:BaseUrl missing.");
+                ?? throw new InvalidOperationException("AzureFunctions:BaseUrl is not configured.");
             _key = config["AzureFunctions:Key"] ?? string.Empty;
         }
 

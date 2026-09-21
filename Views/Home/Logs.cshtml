@@ -14,16 +14,14 @@
 
 @if (!logFiles.Any())
 {
-    <p>No log files yet — logs are created automatically when you use the app.</p>
+    <p>No log files yet.</p>
 }
 else
 {
     <ul>
-    @foreach (var file in logFiles)
-    {
-        <li>
-            <a asp-action="ViewLog" asp-route-fileName="@file">@file</a>
-        </li>
-    }
+        @foreach (var file in logFiles)
+        {
+            <li><a asp-action="ViewLog" asp-route-fileName="@file">@file</a></li>
+        }
     </ul>
 }
